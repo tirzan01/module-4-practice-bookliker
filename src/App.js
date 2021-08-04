@@ -1,51 +1,75 @@
 import React from "react";
 import {
   Container,
-  Header,
-  Menu,
-  Button,
-  List,
-  Image
+  Menu
 } from "semantic-ui-react";
 
-function App() {
-  return (
-    <div>
-      <Menu inverted>
-        <Menu.Item header>Bookliker</Menu.Item>
-      </Menu>
-      <main>
-        <Menu vertical inverted>
-          <Menu.Item as={"a"} onClick={e => console.log("book clicked!")}>
-            Book title
-          </Menu.Item>
+import SelectedBook from "./SelectedBook";
+
+class App extends React.Component {
+
+  constructor() {
+    super()
+
+    this.state = {
+      books: [],
+      selectedBook: undefined,
+      user: [],
+    }
+  }
+
+  selectBook = id => {
+    this.setState({
+      selectedBook: this.state.books.filter(book => book.id === id)[0]
+    })
+  }
+
+  likeBook = id => {
+    let books = [...this.state.books]
+    if(this.state.books[id - 1].users.filter(user => user.id === this.state.user.id).length > 0){
+      books[id - 1].users = books[id - 1].users.filter(user => user.id !== this.state.user.id)
+    }else{
+      books[id - 1].users.push(this.state.user)
+    }
+    console.log(books[id - 1].users)
+    this.setState({books})
+    fetch(`http://localhost:3001/books/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({"users": books[id - 1].users})
+    })
+  }
+
+  render() {
+    return (
+      <div>
+        <Menu inverted>
+          <Menu.Item header>Bookliker</Menu.Item>
         </Menu>
-        <Container text>
-          <Header>Book title</Header>
-          <Image
-            src="https://react.semantic-ui.com/images/wireframe/image.png"
-            size="small"
-          />
-          <p>Book description</p>
-          <Button
-            color="red"
-            content="Like"
-            icon="heart"
-            label={{
-              basic: true,
-              color: "red",
-              pointing: "left",
-              content: "2,048"
-            }}
-          />
-          <Header>Liked by</Header>
-          <List>
-            <List.Item icon="user" content="User name" />
-          </List>
-        </Container>
-      </main>
-    </div>
-  );
+        <main>
+          <Menu vertical inverted>
+            {this.state.books.map(book => <Menu.Item as={"a"} onClick={e => this.selectBook(book.id)} key={book.id}>{book.title}</Menu.Item>)}
+          </Menu>
+          <Container text>
+            {this.state.selectedBook ? <SelectedBook book={this.state.selectedBook} likeBook={this.likeBook} /> : null}
+          </Container>
+        </main>
+      </div>
+    );
+  }
+
+  componentDidMount() {
+    fetch('http://localhost:3001/books')
+      .then(resp => resp.json())
+      .then(books => {this.setState({books})})
+
+      fetch('http://localhost:3001/users/1')
+        .then(resp => resp.json())
+        .then(user => {this.setState({user})})
+  }
 }
 
 export default App;
